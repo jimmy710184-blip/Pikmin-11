@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      皮克敏活動任務完整排程器
+    </title>
+    <style>
+      :root {
+            --primary: #4a7c59;
+            --accent: #ff6b6b;
+            --bg: #f7f9f6;
+            --card: #ffffff;
+            --mushroom: #e07a5f;
+            --danger: #d9534f;
+            --today-border: #2e7d32;
+            --today-bg: #f1f8e9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        h1 { text-align: center; color: var(--primary); margin-bottom: 4px; }
+        .subtitle { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 16px; }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .today-jump-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .reset-all-btn {
+            background-color: #ffffff;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-all-btn:hover {
+            background-color: var(--danger);
+            color: #ffffff;
+        }
+
+        .day-card {
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 6px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        /* 過去日期的刷淡樣式 */
+        .day-card.past-day {
+            opacity: 0.55;
+            filter: grayscale(20%);
+            border-left-color: #a0a0a0;
+        }
+
+        .day-card.past-day:hover {
+            opacity: 0.95;
+            filter: grayscale(0%);
+        }
+
+        /* 今天卡片的高亮樣式 */
+        .day-card.is-today {
+            opacity: 1;
+            filter: none;
+            background-color: var(--today-bg);
+            border-left: 8px solid var(--today-border);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .day-title { font-size: 1.1rem; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+        
+        .today-badge {
+            background-color: #2e7d32;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: normal;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .status-badge.done-all { background: #e8f5e9; color: #2e7d32; }
+        .status-badge.deferred { background: #fff3e0; color: #e65100; }
+
+        .mushroom-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #ffffff;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid #ddd;
+        }
+
+        .mushroom-control input {
+            width: 40px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .task-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+
+        .task-group {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #eee;
+        }
+
+        .task-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .stage-badge {
+            display: inline-block;
+            font-weight: bold;
+            color: #2b580c;
+            background: #e8f5e9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+
+        .sub-task {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 6px;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .sub-task input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .mushroom-icons {
+            display: inline-flex;
+            gap: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .shroom-btn {
+            cursor: pointer;
+            font-size: 1.1rem;
+            user-select: none;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .shroom-btn.done {
+            filter: grayscale(100%);
+            opacity: 0.25;
+        }
+
+        .completed { opacity: 0.4; text-decoration: line-through; }
+    </style>
+  </head>
+  <body>
+    <h1>
+      🍄 皮克敏 11 月任務排程器
+    </h1>
+    <div class="subtitle">
+      全月任務預覽 &amp; 自動追蹤今日進度
+    </div>
+    <div class="action-bar">
+      <button class="today-jump-btn" onclick="scrollToToday()">
+        📍 跳至今天
+      </button>
+      <button class="reset-all-btn" onclick="resetAllData()">
+        🔄 一鍵清空 / 重新開始
+      </button>
+    </div>
+    <div id="calendar">
+    </div>
+    <script>
+      // 11月任務資料
+      const baseStages = [
+            { stage: "1-1", subTasks: ["走 1000 步"], m: 0 },
+            { stage: "1-2", subTasks: ["培育 2 隻皮克敏"], m: 0 },
+            { stage: "1-3", subTasks: ["完成 2 個探險"], m: 0 },
+            { stage: "1-4", subTasks: ["種 1000 朵花"], m: 2 },
+
+            { stage: "2-1", subTasks: ["走 2000 步"], m: 0 },
+            { stage: "2-2", subTasks: ["種 1000 朵花"], m: 2 },
+            { stage: "2-3", subTasks: ["培育 3 隻皮克敏"], m: 3 },
+            { stage: "2-4", subTasks: ["種 500 朵天竺葵"], m: 4 },
+
+            { stage: "3-1", subTasks: ["走 2000 步", "完成 2 個探險"], m: 0 },
+            { stage: "3-2", subTasks: ["種 1500 朵白色鼠尾草"], m: 3 },
+            { stage: "3-3", subTasks: ["種 1500 朵紅色鼠尾草"], m: 4 },
+            { stage: "3-4", subTasks: ["種 1500 朵黃色鼠尾草", "種 2000 朵紅色天竺葵"], m: 5 },
+
+            { stage: "4-1", subTasks: ["完成 3 個探險"], m: 3 },
+            { stage: "4-2", subTasks: ["種 2000 朵白色天竺葵"], m: 4 },
+            { stage: "4-3", subTasks: ["種 2000 朵黃色天竺葵", "種 1000 朵藍色鼠尾草"], m: 4 },
+            { stage: "4-4", subTasks: ["種 2000 朵藍色天竺葵", "種 2500 朵鼠尾草"], m: 5 }
+        ];
+
+        function getExtraMushrooms() {
+            return JSON.parse(localStorage.getItem('pikmin_extra_mushrooms')) || {};
+        }
+
+        function setExtraMushroom(day, count) {
+            const extra = getExtraMushrooms();
+            extra[day] = parseInt(count) || 0;
+            localStorage.setItem('pikmin_extra_mushrooms', JSON.stringify(extra));
+            render();
+        }
+
+        // 計算固定全月標準排程
+        function calculateStaticSchedule() {
+            const extraData = getExtraMushrooms();
+            let schedule = [];
+            let currentStageIdx = 0;
+            let currentMushroomsNeeded = baseStages[0].m;
+            let round = 1;
+
+            // 11月有 30 天
+            for (let day = 1; day <= 30; day++) {
+                let extra = extraData[day] || 0;
+                let mushroomsLeft = 3 + extra;
+                let dayTasks = [];
+
+                while (mushroomsLeft >= 0 && currentStageIdx < baseStages.length) {
+                    let stageData = baseStages[currentStageIdx];
+                    let req = currentMushroomsNeeded;
+
+                    if (req === 0) {
+                        dayTasks.push({ 
+                            round: round, 
+                            stage: stageData.stage, 
+                            subTasks: stageData.subTasks, 
+                            mCount: 0,
+                            mTotal: stageData.m
+                        });
+                        currentStageIdx++;
+                        if (currentStageIdx < baseStages.length) {
+                            currentMushroomsNeeded = baseStages[currentStageIdx].m;
+                        }
+                    } else if (mushroomsLeft >= req) {
+                        dayTasks.push({ 
+                            round: round, 
+                            stage: stageData.stage, 
+                            subTasks: stageData.subTasks, 
+                            mCount: req,
+                            mTotal: stageData.m
+                        });
+                        mushroomsLeft -= req;
+                        currentStageIdx++;
+                        if (currentStageIdx < baseStages.length) {
+                            currentMushroomsNeeded = baseStages[currentStageIdx].m;
+                        } else {
+                            currentStageIdx = 0;
+                            currentMushroomsNeeded = baseStages[0].m;
+                            round++;
+                        }
+                    } else {
+                        dayTasks.push({ 
+                            round: round, 
+                            stage: stageData.stage, 
+                            subTasks: stageData.subTasks, 
+                            mCount: mushroomsLeft,
+                            mTotal: stageData.m
+                        });
+                        currentMushroomsNeeded -= mushroomsLeft;
+                        mushroomsLeft = 0;
+                        break;
+                    }
+                }
+
+                schedule.push({
+                    day: day,
+                    date: `11 月 ${day} 日`, // 更新為 11 月
+                    tasks: dayTasks,
+                    extraMushrooms: extra
+                });
+            }
+            return schedule;
+        }
+
+        function render() {
+            const schedule = calculateStaticSchedule();
+            const container = document.getElementById('calendar');
+            container.innerHTML = '';
+            
+            const savedCheckState = JSON.parse(localStorage.getItem('pikmin_check_state')) || {};
+            const savedShroomState = JSON.parse(localStorage.getItem('pikmin_shroom_state')) || {};
+
+            const todayDate = new Date();
+            const currentMonth = todayDate.getMonth() + 1;
+            const currentDay = todayDate.getDate();
+
+            schedule.forEach((dayData) => {
+                const card = document.createElement('div');
+                card.className = 'day-card';
+                card.id = `day-card-${dayData.day}`;
+
+                // 判斷是否為 11 月的今天或過去
+                const isToday = (currentMonth === 11 && dayData.day === currentDay);
+                const isPast = (currentMonth === 11 && dayData.day < currentDay);
+
+                if (isToday) {
+                    card.classList.add('is-today');
+                } else if (isPast) {
+                    card.classList.add('past-day');
+                }
+
+                let isDayFullyCompleted = true;
+
+                let tasksHTML = dayData.tasks.map((t) => {
+                    const stageKey = `r${t.round}_s${t.stage}`;
+
+                    let subTasksHTML = t.subTasks.map((sub, subIdx) => {
+                        const key = `${stageKey}_sub${subIdx}`;
+                        const isChecked = savedCheckState[key] ? 'checked' : '';
+                        const completedClass = savedCheckState[key] ? 'completed' : '';
+
+                        if (!savedCheckState[key]) isDayFullyCompleted = false;
+
+                        return `
+                            <div class="sub-task ${completedClass}">
+                                <input type="checkbox" id="${key}" ${isChecked} onchange="toggleCheck('${key}')">
+                                <label for="${key}">${sub}</label>
+                            </div>
+                        `;
+                    }).join('');
+
+                    let shroomsHTML = '';
+                    if (t.mCount > 0) {
+                        const mCheckKey = `${stageKey}_mCheck_d${dayData.day}`;
+
+                        let doneCount = 0;
+                        let icons = '';
+                        for (let i = 0; i < t.mCount; i++) {
+                            const shroomKey = `${stageKey}_d${dayData.day}_m${i}`;
+                            const isDone = savedShroomState[shroomKey];
+                            if (isDone) doneCount++;
+                            const doneClass = isDone ? 'done' : '';
+                            icons += `<span class="shroom-btn ${doneClass}" onclick="toggleShroom('${shroomKey}', '${mCheckKey}', ${t.mCount})" title="點擊擊破">🍄</span>`;
+                        }
+
+                        const isAutoCheck = (doneCount === t.mCount && t.mCount > 0);
+                        const isChecked = (savedCheckState[mCheckKey] || isAutoCheck) ? 'checked' : '';
+                        const mCompletedClass = isChecked ? 'completed' : '';
+
+                        if (!isChecked) isDayFullyCompleted = false;
+
+                        shroomsHTML = `
+                            <div class="sub-task ${mCompletedClass}">
+                                <input type="checkbox" id="${mCheckKey}" ${isChecked} onchange="toggleCheck('${mCheckKey}')">
+                                <label for="${mCheckKey}">摧毀蘑菇 (共 ${t.mTotal} 顆，今日目標 ${t.mCount} 顆):</label>
+                                <span class="mushroom-icons">${icons}</span>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="task-group">
+                            <span class="stage-badge">[第 ${t.round} 輪 Stage ${t.stage}]</span>
+                            ${subTasksHTML}
+                            ${shroomsHTML}
+                        </div>
+                    `;
+                }).join('');
+
+                let statusBadge = '';
+                if (dayData.day < currentDay && currentMonth === 11) {
+                    if (isDayFullyCompleted && dayData.tasks.length > 0) {
+                        statusBadge = `<span class="status-badge done-all">✔️ 已完成</span>`;
+                    } else if (dayData.tasks.length > 0) {
+                        statusBadge = `<span class="status-badge deferred">➡️ 任務未如期完成</span>`;
+                    }
+                }
+
+                card.innerHTML = `
+                    <div class="day-header">
+                        <span class="day-title">
+                            📅 ${dayData.date} 
+                            ${isToday ? '<span class="today-badge">🌟 今天</span>' : ''}
+                            ${statusBadge}
+                        </span>
+                        <div class="mushroom-control">
+                            <span>🍄 額外:</span>
+                            <input type="number" min="0" value="${dayData.extraMushrooms}" 
+                                   onchange="setExtraMushroom(${dayData.day}, this.value)"> 顆
+                        </div>
+                    </div>
+                    <div class="task-list">
+                        ${tasksHTML || '<div>本日休息 / 繼續下一輪</div>'}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleCheck(key) {
+            const savedCheckState = JSON.parse(localStorage.getItem('pikmin_check_state')) || {};
+            savedCheckState[key] = !savedCheckState[key];
+            localStorage.setItem('pikmin_check_state', JSON.stringify(savedCheckState));
+            render();
+        }
+
+        function toggleShroom(shroomKey, mCheckKey, totalCount) {
+            const savedShroomState = JSON.parse(localStorage.getItem('pikmin_shroom_state')) || {};
+            savedShroomState[shroomKey] = !savedShroomState[shroomKey];
+            localStorage.setItem('pikmin_shroom_state', JSON.stringify(savedShroomState));
+
+            let doneCount = 0;
+            const prefix = shroomKey.substring(0, shroomKey.lastIndexOf('_m'));
+            for (let i = 0; i < totalCount; i++) {
+                if (savedShroomState[`${prefix}_m${i}`]) {
+                    doneCount++;
+                }
+            }
+
+            const savedCheckState = JSON.parse(localStorage.getItem('pikmin_check_state')) || {};
+            if (doneCount === totalCount) {
+                savedCheckState[mCheckKey] = true;
+            } else {
+                savedCheckState[mCheckKey] = false;
+            }
+            localStorage.setItem('pikmin_check_state', JSON.stringify(savedCheckState));
+
+            render();
+        }
+
+        function scrollToToday() {
+            const todayDate = new Date();
+            const currentDay = todayDate.getDate();
+            const currentMonth = todayDate.getMonth() + 1;
+            
+            if (currentMonth !== 11) {
+                // 如果目前不是 11 月，就跳到 11 月 1 日
+                const firstDayElement = document.getElementById(`day-card-1`);
+                if (firstDayElement) {
+                    firstDayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            const todayElement = document.getElementById(`day-card-${currentDay}`);
+            if (todayElement) {
+                todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function resetAllData() {
+            if (confirm("確定要重置所有完成紀錄與額外蘑菇設定嗎？")) {
+                localStorage.removeItem('pikmin_check_state');
+                localStorage.removeItem('pikmin_shroom_state');
+                localStorage.removeItem('pikmin_extra_mushrooms');
+                render();
+            }
+        }
+
+        render();
+    </script>
+  </body>
+</html>
